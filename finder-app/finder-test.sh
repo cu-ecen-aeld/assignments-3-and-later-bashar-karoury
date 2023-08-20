@@ -34,7 +34,7 @@ rm -rf "${WRITEDIR}"
 # create $WRITEDIR if not assignment1
 assignment=`cat ../conf/assignment.txt`
 
-if [ $assignment != 'assignment1' ]
+if [ $assignment = 'assignment1' ]
 then
 	mkdir -p "$WRITEDIR"
 
@@ -45,6 +45,7 @@ then
 	then
 		echo "$WRITEDIR created"
 	else
+		echo "can't create directory"
 		exit 1
 	fi
 fi
