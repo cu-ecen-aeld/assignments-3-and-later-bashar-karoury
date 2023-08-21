@@ -13,7 +13,7 @@ then
 fi
 
 #Creates a new file with name and path writefile with content writestr, overwriting any existing file and creating the path if not exists
-
+# > is used for redirecting rather than >> to avoid appending
 echo $writestr > "$writefile"
 
 if ! [ $? -eq 0 ]
