@@ -1,6 +1,13 @@
 #include "systemcalls.h"
-
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 /**
+  
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
  *   successfully using the system() call, false if an error occurred,
@@ -16,8 +23,9 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
-
-    return true;
+	int ret;
+    ret = system (cmd);
+    return (!(ret));
 }
 
 /**
@@ -60,8 +68,52 @@ bool do_exec(int count, ...)
 */
 
     va_end(args);
+    pid_t pid;
+    int status;
+    int ret;
+    pid = fork();
 
-    return true;
+    if(-1 == pid)
+    {
+		return false;
+    }
+    else if (0 == pid)
+    {	
+		printf("process has been forked successfully\n");
+		ret = execv (command[0], command);
+		printf("execv have returned with ret = %d \n", ret);
+		if (ret == -1)
+		{
+	    	printf("Errno %d \n",errno);
+	    	printf("Error: %s\n", strerror(errno));
+	    	exit(-1);
+		}
+    }
+	else
+	{
+
+    	printf("Child process has pid: %d\n", pid);
+    	pid_t waitresult = waitpid (pid, &status, 0) ;
+    	
+    	if (waitresult == -1)
+		{	
+	    	printf("wait on process failed\n");
+			return false;
+		}
+		printf("waiting on pid %d \n", waitresult);
+		printf("waiting status: %d \n", status);
+		printf("status of running command: %d\n", WEXITSTATUS(status));
+		if( ! WIFEXITED (status)){
+			return false;
+		}
+		if( WEXITSTATUS(status))
+		{
+			return false;
+		}
+
+    	return true;
+	}
+	return true;
 }
 
 /**
@@ -94,6 +146,65 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 */
 
     va_end(args);
+    pid_t pid;
+    int status;
+    int ret;
 
-    return true;
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0)
+    {
+		perror("open");
+		return false;
+    }
+    pid = fork();
+
+    if(-1 == pid)
+    {
+		return false;
+    }
+    else if (0 == pid)
+	{
+		printf("process has been forked successfully\n");
+		if (dup2(fd, 1) < 0)
+		{
+			perror("dup2");
+			return -1;
+		}
+		close(fd);
+		ret = execv (command[0], command);
+		printf("execv have returned with ret = %d \n", ret);
+		if (ret == -1)
+		{
+	    	printf("Errno %d \n",errno);
+	    	printf("Error: %s\n", strerror(errno));
+	    	exit(-1);
+	    	return false;
+		}
+    }
+	else{
+		close(fd);
+    	printf("Child process has pid: %d\n", pid);
+
+    	pid_t waitresult = waitpid (pid, &status, 0) ;
+    	
+    	if (waitresult == -1)
+		{	
+	    	printf("wait on process failed\n");
+			return false;
+		}
+		printf("waiting on pid %d \n", waitresult);
+		printf("waiting status: %d \n", status);
+		printf("status of running command failed with %d\n", WEXITSTATUS(status));
+		if( ! WIFEXITED (status))
+		{
+			return false;
+		}
+		if( WEXITSTATUS(status))
+		{
+			return false;
+		}
+
+    	return true;
+	}
+	return true;
 }
